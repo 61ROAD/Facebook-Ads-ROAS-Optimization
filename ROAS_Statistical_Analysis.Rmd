@@ -1,0 +1,693 @@
+---
+title: "MLR-CPM"
+output: html_document
+date: "2024-12-05"
+---
+
+
+```{r}
+library(conflicted)
+```
+
+```{r}
+library(tidyverse)
+library(openintro)
+library(statsr)
+library(broom)
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(GGally)
+library(car)
+library(leaps)
+library(DataExplorer)
+library(png)
+```
+# Data Preparation
+
+
+
+
+```
+setwd("/Users/zhengyawen/Desktop/大二上/R/gp/")
+df <- read_excel("/Users/zhengyawen/Desktop/大二上/R/gp/KAG_conversion_data1.xlsx")
+head(df)
+create newcolumn
+df <- df %>%
+  rename(enq_conv = Total_Conversion,
+         buy_conv = Approved_Conversion)
+
+
+
+head(df)
+
+df$gender <- ifelse(df$gender == "M", 1, ifelse(df$gender == "F", 2, df$gender))
+
+head(df)
+
+df <- df %>%
+  
+  mutate(tot_conv = enq_conv + buy_conv,
+         enqconval = enq_conv * 5,
+         buyconval = buy_conv * 100,
+         total_conval = enqconval + buyconval)
+
+
+head(df)
+
+df <- df %>%
+  mutate(ROAS = total_conval / Spent)
+
+
+head(df)
+
+# Displays the number of rows in the current data frame
+initial_rows <- nrow(df)
+cat("Initial rows:", initial_rows, "\n")
+# Delete the row in the ROAS column with the value Inf
+df <- df[!is.infinite(df$ROAS), ]
+
+# Displays the number of deleted lines
+final_rows <- nrow(df)
+cat("Rows after deleting Inf in ROAS:", final_rows, "\n")
+head(df)
+
+write.xlsx(df_agechange, "/Users/zhengyawen/Desktop/大二上/R/gp/KAG_conversion_data2.xlsx")
+```
+
+# Data Visualization
+
+```{r}
+data<-read_csv("ROAdatacleaned1.csv")
+
+```
+
+```{r}
+data2 <- data %>%
+  rename(xyzCampId = xyz_campaign_id, fbCampId = fb_campaign_id, impr = Impressions)
+```
+
+```{r}
+glimpse(data2)
+```
+
+
+```{r}
+library(ggplot2)
+
+ggplot(data2, aes(x = factor(age, levels = c("20-29", "30-39", "40-49", "50-59")))) + 
+  geom_bar(fill = "skyblue", color = "black") + 
+  geom_text(stat = "count", aes(label = ..count..), vjust = -0.3) +  # Display the count value and adjust the position
+  labs(title = "Age Distribution", x = "Age Group", y = "Count") +
+  theme_minimal()
+
+```
+
+```{r}
+# Assuming data2 is your data frame and Clicks is the column name
+hist(data2$Clicks, 
+     main = "Histogram of Clicks", 
+     xlab = "Number of Clicks", 
+     ylab = "Frequency", 
+     col = "lightblue", 
+     border = "black")
+
+```
+
+## Including Plots
+```{r}
+# Calculate the gender count
+gender_counts <- data2 %>%
+  group_by(gender) %>%
+  summarise(count = n())
+
+# Calculate percentage
+gender_counts <- gender_counts %>%
+  mutate(percentage = count / sum(count) * 100)
+
+# Draw pie charts
+ggplot(gender_counts, aes(x = "", y = percentage, fill = factor(gender, labels = c("Male", "Female")))) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar(theta = "y") +  
+  labs(title = "Gender Distribution") +
+  theme_minimal() +
+  theme(axis.text = element_blank(), axis.title = element_blank()) + 
+  geom_text(aes(label = paste0(round(percentage, 1), "%")), position = position_stack(vjust = 0.5))  # 显示百分比
+
+```
+
+You can also embed plots, for example:
+
+```{r}
+library(ggplot2)
+
+#Plot a scatter plot of total conval and Spent
+ggplot(data2, aes(x = Spent, y = total_conval)) +
+  geom_point(color = "blue", alpha = 0.5) + 
+  labs(title = "Scatter Plot of Total Conversion Value vs. Spent", x = "Amount Spent", y = "Total Conversion Value") +
+  theme_minimal()
+
+
+
+```
+
+```{r}
+library(ggplot2)
+
+# Draw scatter plots for total conval and Impressions
+ggplot(data2, aes(x = impr, y = total_conval)) +
+  geom_point(color = "green", alpha = 0.6) +  
+  labs(title = "Scatter Plot of Total Conversion Value vs. Impressions", 
+       x = "Impressions", 
+       y = "Total Conversion Value") +
+  theme_minimal()
+
+
+
+```
+
+```{r}
+
+library(ggplot2)
+
+ggplot(data2, aes(x = Spent, y = ROAS)) +
+  geom_point(color = "blue") +
+  labs(title = "Scatter plot of ROAS vs. Spent",
+       x = "Spent", 
+       y = "ROAS") +
+  theme_minimal()
+```
+
+
+```{r}
+library(ggplot2)
+
+
+ggplot(data = data2, aes(y = interest)) + 
+  geom_boxplot(fill = "skyblue", color = "black") + 
+  labs(title = "Interest", y = "Interest") + 
+  theme_minimal()
+
+```
+
+
+```{r}
+library(ggplot2)
+
+# Create a scatterplot of total conversion value vs. another variable (e.g., 'age')
+ggplot(data2, aes(x = age, y = total_conval)) +
+  geom_point(color = "blue", alpha = 0.5) +
+  labs(x = "Age", y = "Total Conversion Value") +
+  theme_minimal() +
+  ggtitle("Scatterplot of Total Conversion Value vs. Age")
+```
+
+
+# Descriptive Statistics
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+#measure of location
+
+data2_sum <- data2 %>%
+  select(-ad_id, -xyzCampId, fbCampId, -age, -gender)
+
+summary(data2_sum)
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+# Load the dplyr library if not already loaded
+# Calculate the IQR for selected columns
+iqr_values <- data2_sum %>%
+  summarise(
+    tot_conv_IQR = IQR(tot_conv, na.rm = TRUE),
+    enqconval_IQR = IQR(enqconval, na.rm = TRUE),
+    buyconval_IQR = IQR(buyconval, na.rm = TRUE),
+    total_conval_IQR = IQR(total_conval, na.rm = TRUE),
+    ROAS_IQR = IQR(ROAS, na.rm = TRUE)
+  )
+
+# Print the IQR values
+print(iqr_values)
+
+
+```
+
+
+```{r}
+library(dplyr)
+
+data2$age <- as.character(data2$age)
+data2_agechange <- data2 %>%
+  mutate(age = case_when(
+    age == "20-29" ~ 25,
+    age == "30-39" ~ 35,
+    age == "40-49" ~ 45,
+    age == "50-59" ~ 55,
+    TRUE ~ as.numeric(NA)  
+  ))
+
+
+head(data2_agechange$age)
+
+
+```
+
+```{r}
+library(dplyr)
+
+# Measure of location
+data2_sum <- data2 %>%
+  select(-ad_id, -xyzCampId, fbCampId, -age, -gender) %>%
+  drop_na()  # Drop rows with NA values
+
+# Summary of data2_agechange after dropping NA
+data2_agechange_summary <- summary(data2_sum)
+
+# Print the summary
+print(data2_agechange_summary)
+
+```
+
+
+
+# Statistical Inference
+
+3.
+(1)
+```{r}
+# Create Age Group
+data2$age_group <- ifelse(data2$age <= 40, "young", "middle-aged")
+
+boxplot(total_conval ~ age_group, data = data2, 
+        main = "Total conval by Age Group",
+        xlab = "Age Group", ylab = "Totalconval", col = "lightblue")
+
+# t-test
+t_test_result <- t.test(total_conval ~ age_group, data = data2, var.equal = FALSE)
+print(t_test_result)
+```
+
+H0: There is no significant difference in the mean total_conval between the middle-aged group and the young group.
+H1: There is a significant difference in the mean total_conval between the middle-aged group and the young group.
+
+Analysis of Results:
+Key Findings:
+t-value: -3.2108
+Degrees of Freedom (df): 890.43
+p-value: 0.001371
+The p-value is less than 0.05, indicating that the difference in means between the two age groups is statistically significant.
+Confidence Interval: [-67.81952, -16.36292]
+The 95% confidence interval does not include 0, further confirming that the means of the two groups are significantly different.
+Mean Total Conversions:
+Middle-aged group: 100.1675
+Young group: 142.2587
+Interpretation:
+The young group has a significantly higher average total conversion rate (142.26) compared to the middle-aged group (100.17).
+The confidence interval suggests that the true mean difference in conversions between the two age groups lies between -67.82 and -16.36, where negative values indicate the young group outperforms the middle-aged group in total conversions.
+
+suggestions:
+For young people:
+Due to the higher conversion rate among the younger demographic, we are considering placing more advertisements on this group. This includes customizing advertising content, increasing advertising frequency, or providing promotional activities specifically designed for young users.
+Optimize activities for the middle-aged population:
+The conversion rate of middle-aged people is relatively low, and their preferences and behaviors should be analyzed to understand the reasons for the low conversion rate. Advertising design, information transmission, or services should be specifically targeted at this age group to meet the needs of middle-aged people.
+Segmented advertising:
+Implement advertising campaigns targeting specific age groups. For example:
+Use dynamic, engaging, and mobile friendly advertisements for young audiences.
+For middle-aged people, emphasis is placed on practicality, reliability, and detailed product information.
+(2)
+```{r}
+# t-test
+t_test_result <- t.test(total_conval ~ gender, data = data2, var.equal = FALSE)
+print(t_test_result)
+
+boxplot(total_conval ~ gender, data = data2, 
+        main = "Total conval by gender",
+        xlab = "Gender", ylab = "Total conval", col = "blue")
+```
+Explanation:
+t-value: 0.83788
+Degrees of Freedom (df): 884.49
+p-value: 0.4023
+The p-value is greater than 0.05, meaning we fail to reject the null hypothesis. There is no statistically significant difference in the mean total conversions between the two gender groups.
+Confidence Interval: [-15.36288, 38.25175]
+The 95% confidence interval includes 0, indicating no significant difference in the means.
+Mean Total Conversions:
+Group 1: 129.1226
+Group 2: 117.6782
+Interpretation:
+The data shows no significant difference in the average total conversions between the two gender groups. 
+
+Conclusion:
+The lack of a statistically significant difference in total conversions between gender groups suggests that advertising strategy does not need to heavily differentiate based on gender. 
+
+Suggestion:
+According to the significance of the results:
+Due to a p-value greater than 0.05, it indicates that gender has no significant impact on total conversion. Therefore, in advertising placement, gender may not be the main factor affecting advertising return, and a unified advertising strategy can continue to be used to maintain gender neutrality, without the need to customize differentiated advertising content for male and female groups.
+Further optimize advertising content:
+Although gender itself does not have a significant impact on total conversion statistically, further optimization of advertising content can be considered to better attract audiences of different genders. For example, advertising content, creativity, and language may be more attractive to certain groups. Although gender differences themselves are not significant, adjusting advertising content based on other factors such as interests, consumption habits, and purchase frequency may improve overall effectiveness.
+
+(3)
+```{r}
+# Pearson correlation test
+cor_test_result <- cor.test(data2$impr, data2$total_conval)
+print(cor_test_result)
+```
+Explanation:
+The correlation coefficient (cor): 0.7051 indicates a moderate to strong positive correlation between the number of impressions and total conversions. This means that the more times an advertisement is displayed, the higher the total conversion rate tends to be.
+
+T-value and p-value:
+The t-value indicates the degree of deviation between the correlation coefficient and zero, with larger values indicating stronger correlation.
+A p-value less than 0.05 (actually much less than 0.05) indicates that the results are highly significant, meaning we can reject the null hypothesis and assume that the correlation between ad impressions and total conversions is not accidental but significant.
+
+Suggestion:
+Increase advertising placement:
+Due to the significant positive correlation between the number of ad impressions and conversion rates, increasing the number of ad impressions may directly lead to higher conversion rates (i.e., more sales or goal achievement). Therefore, e-commerce platforms can consider increasing the budget or frequency of advertising placement to increase exposure, thereby improving sales and conversion rates.
+Optimize the quality of advertising display:
+Although the number of impressions and conversion rates are related, not all ad impressions can guarantee conversion. Therefore, while increasing the number of displays, attention should also be paid to the quality and precision of advertising targeting. Optimizing advertising content, timing, and target audience positioning can further enhance the effectiveness and conversion rate of advertising display.
+Avoid excessive display:
+If the number of advertisement displays is too high, it may lead to advertisement fatigue, thereby affecting the conversion effect. E-commerce platforms should adjust their display frequency based on feedback on the effectiveness of advertisements to avoid ineffective advertising displays.
+Conclusion:
+There is a strong positive correlation between the number of ad impressions and conversion rates. By increasing the number of ad impressions, e-commerce platforms can expect to increase total conversion rates, but optimizing ad content and placement strategies is equally crucial to ensure that advertising investment can bring the maximum return on investment
+
+
+# Regression Analysis
+
+
+# Model ROAS
+
+```{r}
+data3<-read_xlsx("ROAdatacleaned2age.xlsx")
+```
+
+
+```{r}
+data3$gender <- as.numeric(data3$gender)
+```
+
+
+```{r}
+# View the basic information and the first few rows of the dataset
+print("Basic information of the dataset:")
+str(data3)
+```
+
+
+```{r}
+# First multiple regression analysis: fitting the relationship between age, gender, interest, impression, and Clicks
+model_clicks <- lm(Clicks ~ age + gender + interest + Impressions, data = data3)
+summary(model_clicks)
+```
+
+```{r}
+# Second multiple regression analysis: fitting the relationship between age, gender, interest, impression, and total - conval
+model_total_conval <- lm(`total_conval` ~ age + gender + interest + Impressions, data = data3)
+summary(model_total_conval)
+```
+
+```{r}
+model_Spent <- lm(Spent ~ total_conval, data = data3)
+summary(model_Spent)
+```
+
+```{r}
+# Third multiple regression analysis: fitting the relationship between age, gender, interest, impression, and ROAS
+model_ROAS <- lm(ROAS ~ age + gender + interest + Impressions, data = data3)
+summary(model_ROAS)
+```
+
+### **Reasons for Optimizing the ROAS Model**
+
+1.  **Poor Fit**: The ROAS model has a very low R - squared (0.04248), indicating it poorly explains the variance in ROAS compared to other models (e.g., Clicks model with high R - squared). This shows the current model fails to capture key factors influencing ROAS effectively.
+
+2.  **Insignificant Variables**: Many variables in the ROAS model, like certain age groups, gender, and interest, have non - significant coefficients (p - values \> 0.05). This means they don't contribute meaningfully to predicting ROAS, suggesting the model might be missing important relationships or including irrelevant factors.
+
+3.  **Counterintuitive Coefficient**: The negative coefficient for impr in the ROAS model is unexpected as more impressions are usually thought to have a more complex or positive relationship with ROAS. This indicates a possible incorrect model specification.
+
+4.  **Unstable Residuals**: The wide range (-16.84 to 570.46) and non - zero median (-6.56) of residuals suggest the model has problems fitting the data well. It may be affected by outliers or unaccounted - for patterns, unlike other models with better - behaved residuals.
+
+Overall, these issues highlight the urgent need to optimize the ROAS model for more accurate insights in advertising and revenue prediction.
+
+handle extreme values
+
+```{r}
+# Assume based on business knowledge, ROAS values greater than 100 might be outliers and set them to 100
+data3$ROAS[data3$ROAS > 100] <- 100
+# This step helps to handle extreme values that could potentially distort the model.
+```
+
+## Feature Engineering
+
+
+
+```{r}
+str(data3$age)
+str(data3$gender)
+```
+```{r}
+data3$gender <- as.numeric(data3$gender)
+data3$age <- as.numeric(as.character(data3$age))
+```
+
+```{r}
+data3$age_gender_interaction <- data3$age * data3$gender
+# This creates an interaction term between age and gender. The interaction term can capture the combined effect of age and gender that may not be captured by considering them separately.
+sum(is.na(data3$age_gender_interaction))
+```
+
+```{r}
+data3$age_gender_interaction <- data3$age * data3$gender
+data3$age_standardized <- max(data3$age) - data3$age
+data3$young_female <- data3$age_standardized * data3$age
+# This creates an interaction term between age and gender,representing young female group. The interaction term can capture the combined effect of age and gender that may not be captured by considering them separately.
+```
+
+```{r}
+# Standardize the impr variable to have a mean of 0 and standard deviation of 1
+data3$impr_standardized <- scale(data3$Impressions)
+# This can improve the performance of some models and make the coefficients more interpretable.
+
+# Apply a logarithmic transformation to ROAS (adding a small constant to avoid log of 0)
+data3$ROAS_log <- log(data3$ROAS + 0.001)
+# Log transformation can often make the data more suitable for linear models and stabilize the variance.
+```
+
+```{r}
+data3 <- na.omit(data3)
+sum(is.na(data3))
+```
+
+```{r}
+model_op_ROAS <- lm(ROAS_log ~ age + gender + interest + impr_standardized + age_gender_interaction + young_female, data = data3)
+summary(model_op_ROAS)
+```
+
+
+
+
+
+```{r}
+   plot(model_clicks)
+   plot(model_total_conval)
+   plot(model_Spent)
+   plot(model_ROAS)
+   plot(model_op_ROAS)
+```
+
+
+
+## model CPM
+- Return on Advertising Spend (ROAS): While advertising campaigns also provide benefits like increased brand awareness and potential future purchases based on customer lifetime value, ROAS quickly shows how effectively a campaign is generating revenue relative to its cost. It’s simply the revenue divided by the advertising spend. For example, if a campaign costs £100 and generates £400 in sales, the ROAS would be 400% (or 4).
+- Cost Per Mille (CPM): This number is the cost of one thousand impressions. If your objective is ad exposure to increase brand awareness, this might be an important KPI for you to measure.
+
+
+
+```{r}
+glimpse(data2)
+```
+
+
+
+```{r}
+options(repr.plot.width=4, repr.plot.height=3)
+
+ggplot1 <- ggplot(data2, aes(as.factor(xyzCampId), Spent)) + geom_boxplot() +
+  labs(x = "Campaign", y = "Advertising Spend")
+ggplot1
+
+ggplot2 <- ggplot(data2, aes(as.factor(xyzCampId), total_conval)) + geom_boxplot() +
+  labs(x = "Campaign", y = "Conversions")
+ggplot2
+```
+
+```{r}
+ggsave("AD.png",plot = ggplot1)
+ggsave("Con.png",plot = ggplot2)
+```
+
+
+```{r}
+conflicts_prefer(dplyr::filter)
+```
+
+```{r}
+data1178 <- data2 %>%
+  filter(xyzCampId == 1178)
+
+```
+
+```{r}
+str(data2)
+```
+
+```{r}
+glimpse(data1178)
+```
+
+
+```{r}
+data1178 <- data1178 %>%
+  mutate(CPM = round((Spent / impr) * 1000, 2))
+```
+
+
+```{r}
+head(data1178)
+```
+
+```{r}
+print(sum(is.infinite(data1178$ROAS)))
+```
+
+```{r}
+sum(is.na(data1178$CPM))
+sum(data1178$CPM <= 0)
+sum(is.infinite(data1178$CPM))
+sum(is.nan(data1178$CPM))
+```
+
+
+
+```{r}
+plot3 <-ggcorr(data1178, digits = 12, label = TRUE, name = "Correlations", label_alpha = TRUE)
+plot3
+```
+
+```{r}
+ggsave("CMH.png",plot = plot3)
+```
+
+
+```{r}
+unique(data1178$age)
+```
+```{r}
+data1178$gender <- as.factor(data1178$gender)
+```
+
+### Initial Model Result
+```{r}
+modelCPM <- lm(data1178$CPM ~ gender + age + interest + impr + Clicks + Spent, data=data1178)
+summary(modelCPM)
+```
+**Interpretation:**
+
+1.  **Coefficients**: These are the estimates of the effects that each independent variable has on the dependent variable `CPM`.
+    The coefficient for `genderFaMale` is 6.183e-02, which suggests that the `CPM` for Females is 6.183e-02 units higher than for males, holding all other variables constant.
+    The coefficient for `age30-39` is 4.122e-02, which suggests that the `CPM` for age35-39 is 4.122e-02 units higher than for age20-29, holding all other variables constant.
+    And since the coefficient are higher than age35-39, the CPM would be also higher than age45-49 and also higher than age20-29.
+    The coefficient for `interest` is -5.274e-04, which means that for each unit increase in `interest`, the `CPM` decreases by -5.274e-04, holding all other variables constant.
+    The coefficient for `impr` is -2.526e-07, which means that for each unit increase in `impr`, the `CPM` decreases by -2.526e-07, holding all other variables constant.
+    The coefficient for `Clicks` is -1.785e-03, which means that for each unit increase in `Clicks`, the `CPM` decreases by -1.785e-03, holding all other variables constant.
+    The coefficient for `Spent` is 2.167e-03, which means that for each unit increase in `Spent`, the `CPM` increases by 2.167e-03, holding all other variables constant.
+    
+    
+2.  **Significance of coefficients**: The `Pr(>|t|)` column gives the p-values for the hypothesis tests of whether each coefficient is different from zero.
+    All the `impr` ,`gender`, `age` and  `Spent` have p-values less than 0.05, which means that we can reject the null hypothesis that these coefficients are zero at the 5% significance level.
+    In other words, `impr` ,`gender`, `age` and  `Spent` have statistically significant effects on `CPM`.
+
+3.  **Model significance**: The overall significance of the model can be assessed by the F-statistic and its associated p-value.
+    The F-statistic is 136, a higher F-statistic indicates that the model explains a significant portion of the variance in the dependent variable. The p-value smaller than 2.2e-16, which is less than 0.05.
+    This means that we can reject the null hypothesis that all of the regression coefficients are zero.
+    In other words, the independent variables `impr` ,`gender`, `age` and  `Spent` together significantly explain the variation in `CPM`.
+
+4.  **Model fit**: The Adjusted R-squared value is 0.6384, which means that about 64% of the variability in`CPM`can be explained by`impr` ,`gender`, `age` and  `Spent`.
+
+In sum, both `impr` ,`gender`, `age` and  `Spent` have statistically significant effects on `CPM`, and the model as a whole is statistically significant, but it only explains about 64% of the variability in `CPM`.
+
+```{r}
+plot(modelCPM)
+```
+
+
+
+**Interpretation:**
+**Linearity**
+- Residuals vs Fitted plot: The residuals are randomly scattered around the horizontal line at zero, indicating that the model's predictions are unbiased across all levels of the fitted values.
+**Normality of Errors**
+- Q-Q plot: The points fall approximately along the reference line, indicating the residuals are normally distributed.
+However, the residuals are not perfectly normally distributed, particularly at the tails.
+**Homoscedasticity**
+The points are randomly scattered around the line, indicating constant variance of residuals across all levels of fitted values. The red line should be flat if homoscedasticity is present. In this plot, the line shows a slight upward trend, suggesting increasing variance with higher fitted values.
+
+
+### Deal with violations of regression assumption
+**Deleting observations**
+
+```{r}
+outlier1 <- c(377, 72, 489)
+datacleaned <- data1178[-outlier1, ]
+modelCPM_cleaned <- lm(CPM ~ gender + age + interest + impr + Clicks + Spent, data = datacleaned)
+summary(modelCPM_cleaned)
+```
+
+We could see that the `Multiple R-squared` increase from 0.6431 to 0.6579 after delating outliers.
+
+**Variable selection: adding or deleting variables**
+```{r}
+leaps <-regsubsets(datacleaned$CPM ~ gender + age + interest + impr + Clicks + Spent,data=datacleaned, nbest = 2)
+summary(leaps)
+plot(leaps,scale ="adjr2")
+```
+The plot shows which combinations of variables lead to higher adjusted R-squared values, suggesting a better model fit. Models with more black bars towards the top have higher adjusted R-squared values.
+
+
+**Compare models**
+
+```{r}
+fit1<- lm(datacleaned$CPM ~ gender + age, data=datacleaned)
+fit2<- lm(datacleaned$CPM ~ gender + age + interest, data=datacleaned)
+fit3<- lm(datacleaned$CPM ~ gender + age + interest + impr, data=datacleaned)
+fit4<- lm(datacleaned$CPM ~ gender + age + interest + impr + Clicks, data=datacleaned)
+fit5<- lm(datacleaned$CPM ~ gender + age + interest + impr + Clicks + Spent, data=datacleaned)
+anova(fit1,fit2,fit3,fit4,fit5)
+```
+Res.Df: Residual degrees of freedom for each model.
+RSS: Residual Sum of Squares, indicating the unexplained variance.
+Df: Degrees of freedom for the additional predictors added in each step.
+Sum of Sq: Sum of squares for the additional predictors.
+F: F-statistic for the change in model fit.
+Pr(>F): p-value for the F-statistic, testing the significance of adding predictors.
+
+- H0: No difference between two models        = accept a simpler model
+- H1: There is a difference between two models        = accept a complex model
+Since the significance of coefficient is less than 0.001, we could reject the H0, indicating using all features.
+
+
+
+
+
+
+
+
+
+
+
+
+
