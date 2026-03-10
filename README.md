@@ -58,11 +58,10 @@ To ensure rigorous analysis, I implemented a complete statistical data pipeline 
 ## **⚙️ Installation & Usage**
 
 1. **Clone the repository:**  
-   git clone \[https://github.com/yourusername/Facebook-Ads-ROAS-Optimization.git\](https://github.com/yourusername/Facebook-Ads-ROAS-Optimization.git)  
-   cd Facebook-Ads-ROAS-Optimization
+   git clone
 
 2. **Open in RStudio:**  
-   * Open the Group\_project\_Group\_G.Rmd file in RStudio.  
+   * Open the ROAS\_Statistical\_Analysis.Rmd file in RStudio.  
    * Ensure you change the setwd() directory in the Rmd file to match your local project path.  
 3. **Install Required R Packages:**  
    Run the following in your R console if you haven't installed them yet:  
