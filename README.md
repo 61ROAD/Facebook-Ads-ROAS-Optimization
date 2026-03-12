@@ -10,6 +10,13 @@ This project is a deep-dive statistical analysis and optimization engine for a c
 * **Optimize Budget Allocation:** Identify which demographic segments yield the highest ROAS to guide data-driven budget allocation and lower Customer Acquisition Cost (CAC).  
 * **Model Selection:** Rigorously test, compare, and validate various statistical models to find the most robust predictor of ad performance.
 
+## **📁 Project Structure**
+
+.  
+├── ROAdatacleaned1.csv         \# Cleaned and engineered Facebook Ads dataset  
+├── ROAS\_Statistical\_Analysis.Rmd   \# Main R Markdown file containing all code, plots, and statistical tests  
+└── README.md                   \# Project documentation
+
 ## **🧠 Data Architecture & Modeling**
 
 To ensure rigorous analysis, I implemented a complete statistical data pipeline in R:
@@ -47,13 +54,6 @@ To ensure rigorous analysis, I implemented a complete statistical data pipeline 
 * **Data Manipulation:** tidyverse, dplyr, readxl  
 * **Statistical Modeling:** stats, broom (model tidying), car (diagnostics), leaps (subset selection)  
 * **Data Visualization:** ggplot2, GGally, DataExplorer
-
-## **📁 Project Structure**
-
-.  
-├── ROAdatacleaned1.csv         \# Cleaned and engineered Facebook Ads dataset  
-├── ROAS\_Statistical\_Analysis.Rmd   \# Main R Markdown file containing all code, plots, and statistical tests  
-└── README.md                   \# Project documentation
 
 ## **⚙️ Installation & Usage**
 
